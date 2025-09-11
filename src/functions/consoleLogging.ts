@@ -23,6 +23,7 @@ export function consoleLogging(page: Page) {
       const update = ['all', 'changed'].includes(test.info().config.updateSnapshots);
       if (update) {
         await writeIgnoreFile(logs, '.consoleignore');
+        expect([], 'no console outputs').toEqual([]);
         return;
       }
 

@@ -12,8 +12,6 @@ export async function checkAccessibility(
   axeFolder = false,
 ) {
   await test.step('Accessibility', async () => {
-    // await page.clock.resume(); // need to resume the clock for axe to work properly
-
     // generate accessibility report
     const axeBuilder = new AxeBuilder({ page });
     axeBuilder.withTags(accessibilityTags);

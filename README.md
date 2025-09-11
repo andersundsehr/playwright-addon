@@ -10,6 +10,30 @@ npm install --save-dev @andersundsehr/playwright-addon
 yarn add -D @andersundsehr/playwright-addon
 ```
 
+Make sure you ignore the auto generated files and folders.  
+For storybook you can add this to your viteFinal in your `.storybook/main.js|ts`
+
+```ts
+import { mergeConfig } from 'vite';
+
+const config = {
+  viteFinal(config, options) {
+    return mergeConfig(config, {
+      server: {
+        watch: {
+          ignored: [
+            '**/playwright-report/**', // change this if you change it in your playwright config
+            '**/*-snapshots/**', // change this if you change it in your playwright config
+            '**/*-axe-report/**', // this can not be changed of right now
+          ],
+        },
+      },
+    } satisfies Partial<InlineConfig>);
+  }
+};
+
+```
+
 ## Features
 
 ### test all stories in a Storybook instance (fetchStories and snapshotTest)
@@ -53,6 +77,9 @@ This can be used to assert that there are no console logs, warnings or errors on
 If you want to ignore all current issues, you can use `playwright test --update-snapshots` to update the snapshots and ignore the current issues.  
 This will create an `<snapshotFolder>/<testcase>.consoleignore` file with the current issues ignored.
 
+See also global ignore (below).
+
+
 ````ts
 import { test } from '@andersundsehr/playwright-addon';
 test('my console logging test', async function ({ page }) {
@@ -75,6 +102,8 @@ If there is an accessibility issue, the test will fail and you will get a report
 If you want to ignore all current issues, you can use `playwright test --update-snapshots` to update the snapshots and ignore the current issues.  
 This will create an `<snapshotFolder>/<testcase>.accessibilityignore` file with the current issues ignored.
 
+See also global ignore (below).
+
 ````ts
 import { test, checkAccessibility } from '@andersundsehr/playwright-addon';
 test('my accessibility test', async function ({ page }) {
@@ -87,9 +116,48 @@ test('my accessibility test', async function ({ page }) {
 });
 ````
 
+### global ignores:
+
+You can set global ignore entries in your playwright config file.  
+You should be careful with this, as this ignores will be applied to all tests.
+
+````ts
+import { defineConfig, devices } from '@playwright/test';
+
+// ...
+
+export default defineConfig({
+  
+  // ...
+  
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+      metadata: {
+        ignoreEntries: {
+          // you can have global ignore entries here
+          // these will be merged with the per-testcase ignore files
+          '.consoleignore': [
+            // you can use strings or regex here
+            /^debug➡️ \[vite].*$/,
+            'debug➡️ initialized',
+          ],
+          '.accessibilityignore': [
+            /^color-contrast:/,
+            "empty-heading: 2 - Don't leave heading elements empty or hide them."
+          ],
+        },
+      },
+    }
+  ]
+  
+});
+````
+
 ## TODOs:
 
-- include histoire support
+- add histoire support
 
 # with ♥️ from anders und sehr GmbH
 

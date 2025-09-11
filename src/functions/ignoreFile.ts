@@ -3,7 +3,6 @@ import { dirname } from 'node:path';
 import { deleteUpwards, test } from '@andersundsehr/playwright-addon';
 
 function getIgnoreFileName(fileEnding: string) {
-
   return test
     .info()
     .snapshotPath()
@@ -16,35 +15,59 @@ async function getIgnoreFileContent(fileEnding: string) {
   let fileContent = '';
   try {
     fileContent = await readFile(consoleIgnoreFilename, 'utf-8');
-  } catch (e) {
-    // return () => true; // no ignore file, do not filter anything
+  } catch {
+    // Ignore error if file does not exist
   }
 
   return fileContent
     .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'));
+    .map((line: string) => line.trim())
+    .filter((line: string) => line && !line.startsWith('#'));
 }
 
-export async function createFilterFunction(fileEnding: string) {
-  const ignores = await getIgnoreFileContent(fileEnding);
+interface IgnoreEntriesMetadata {
+  ignoreEntries?: Record<string, (string | RegExp)[]>;
+}
 
-  return (value: string) => !ignores.includes(value); // exact match
+function getGlobalIgnores(fileEnding: string): (string | RegExp)[] {
+  const metadata = (test.info().project.metadata ?? {}) as IgnoreEntriesMetadata;
+  return metadata.ignoreEntries?.[fileEnding] || [];
+}
+
+export async function createFilterFunction(fileEnding: string, withLocal = true): Promise<(value: string) => boolean> {
+  const globalIgnores = getGlobalIgnores(fileEnding);
+  let ignores: string[] = [];
+  if (withLocal) {
+    ignores = await getIgnoreFileContent(fileEnding);
+  }
+
+  const ignoresSet = new Set([...globalIgnores, ...ignores]);
+  const allIgnores = [...ignoresSet].map((ignore) => {
+    if (typeof ignore !== 'string') {
+      return ignore;
+    }
+    if (!ignore.startsWith('^') && !ignore.endsWith('$')) {
+      return ignore;
+    }
+    return new RegExp(ignore);
+  });
+
+  // return (value: string) => !ignoresSet.has(value);
 
   // For partial match use this:
-  // return (log: string) => {
-  //   return !ignores.some((ignore) => {
-  //     // TODO decide if we support regex or not
-  //     // if (ignore.startsWith('^') && ignore.endsWith('$')) {
-  //       // use regex:
-  //       // return new RegExp(ignore).test(value);
-  //     // }
-  //     return value.includes(ignore);
-  //   });
-  // };
+  return (value: string) => {
+    return !allIgnores.some((ignore) => {
+      if (ignore instanceof RegExp) {
+        return ignore.test(value);
+      }
+      return value === ignore;
+    });
+  };
 }
 
 export async function writeIgnoreFile(ignores: string[], fileEnding = '.consoleignore') {
+  ignores = ignores.filter(await createFilterFunction(fileEnding, false));
+
   const ignoreFilename = getIgnoreFileName(fileEnding);
   if (ignores.length === 0) {
     await deleteUpwards(ignoreFilename);
