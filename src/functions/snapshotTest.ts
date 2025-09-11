@@ -79,5 +79,7 @@ export async function snapshotTest(page: Page, inputSettings: SnapshotTestSettin
 
   await page.assertConsoleLogEmpty();
 
+  await page.clock.resume();
+
   await checkAccessibility(page, settings.selector, settings.accessibilityTags, settings.axeFolder);
 }
