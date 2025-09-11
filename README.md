@@ -52,7 +52,7 @@ for (const story of stories) {
 
 ````
 
-### page.gotToStory()
+### page.goToStory()
 
 If you put your test file beside your story file, you can use `page.goToStory('storyId')` to go to a specific story.  
 requirements:
