@@ -36,7 +36,8 @@ export async function fetchStories(baseUrl: string): Promise<StorybookStoryMetaD
   return Object.values(data.entries)
     .filter((story: StoryMetaData) => story.type !== 'docs')
     .map((story: StoryMetaData): StorybookStoryMetaData => {
-      const url = `${baseUrl}iframe.html?id=${story.id}`;
+      // a11y.manual:!true => disable the automatic a11y addon check, as we want to do it in playwright and it can only run once concurrently
+      const url = `${baseUrl}iframe.html?id=${story.id}&globals=a11y.manual:!true`;
       return { ...story, url, selector: '#storybook-root', storyPath: resolve(story.importPath) };
     });
 }
